@@ -1,18 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-NEORV32 UART bootloader upload script.
-Replicates the behaviour of uart_upload.sh using pyserial,
-which works natively on Windows without needing raw mode stty.
-
-Usage:
-    python neorv32_uart_upload.py <COM port> <path to neorv32_exe.bin>
-
-Examples:
-    python neorv32_uart_upload.py COM3 path/to/neorv32_exe.bin
-    python neorv32_uart_upload.py /dev/ttyUSB0 path/to/neorv32_exe.bin
-"""
-
 import sys
 import time
 import serial

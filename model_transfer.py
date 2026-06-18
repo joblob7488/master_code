@@ -1,13 +1,3 @@
-#!/usr/bin/env python3
-"""
-tm_flash_send.py
-Sends a raw TM model binary to the NEORV32 flash writer over UART.
-
-Usage:
-    python tm_flash_send.py <model.bin> --port COM3
-    python tm_flash_send.py <model.bin> --port /dev/ttyUSB0
-"""
-
 import argparse
 import serial
 import struct
@@ -22,7 +12,7 @@ TIMEOUT_S   = 30     # seconds to wait for ACK after erase (sectors take time)
 
 
 def wait_ack(ser: serial.Serial, timeout: float = TIMEOUT_S) -> bool:
-    """Wait for ACK byte, discarding any text output from the device."""
+    
     ser.timeout = timeout
     while True:
         resp = ser.read(1)
@@ -35,8 +25,6 @@ def wait_ack(ser: serial.Serial, timeout: float = TIMEOUT_S) -> bool:
         if b == NAK:
             print("ERROR: NAK received from device.")
             return False
-        # Print any text output from the device for debugging
-        # (text bytes are all printable ASCII, ACK/NAK are not)
         try:
             print(chr(b), end="", flush=True)
         except:
@@ -61,17 +49,9 @@ def send_model(port: str, baud: int, model_path: str):
         time.sleep(0.3)
         ser.reset_input_buffer()
 
-        # -------------------------------------------------------------------
-        # Step 1: send 4-byte little-endian model size
-        # -------------------------------------------------------------------
         print("Sending model size...")
         ser.write(struct.pack("<I", model_size))
 
-        # -------------------------------------------------------------------
-        # Step 2: wait for ACK after erase
-        # Erase can take a while for large models (each 64KB sector ~1-2s)
-        # For 3.7MB = 58 sectors worst case ~116s, so use a long timeout
-        # -------------------------------------------------------------------
         num_sectors = (model_size + 64*1024 - 1) // (64*1024)
         erase_timeout = max(30, num_sectors * 3)  # 3s per sector, min 30s
         print(f"Waiting for erase ({num_sectors} sectors, up to {erase_timeout}s)...")
@@ -80,9 +60,7 @@ def send_model(port: str, baud: int, model_path: str):
             sys.exit(1)
         print("Erase done. Starting transfer...\n")
         time.sleep(0.1)
-        # -------------------------------------------------------------------
-        # Step 3: send chunks, wait for ACK after each
-        # -------------------------------------------------------------------
+
         start_time = time.time()
 
         for chunk_idx in range(num_chunks):
@@ -96,7 +74,6 @@ def send_model(port: str, baud: int, model_path: str):
             ser.write(chunk)
 
             # Wait for ACK — device ACKs after programming the chunk to flash
-            # Flash page program is ~1.5ms per page, 16 pages per chunk = ~25ms
             if not wait_ack(ser, timeout=5.0):
                 print(f"Failed on chunk {chunk_idx + 1}/{num_chunks}")
                 sys.exit(1)

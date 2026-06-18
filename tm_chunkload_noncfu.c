@@ -1,14 +1,3 @@
-// ================================================================================ //
-// TM Inference Benchmark - Non-CFU version                                         //
-// Loads model from flash into DDR2, then runs inference on images received          //
-// over UART. Reports prediction and cycle count per image.                          //
-//                                                                                  //
-// Protocol:                                                                         //
-//   Host sends 25*4 = 100 bytes (positive literals packed as 25 x uint32_t)        //
-//   Device sends raw prediction byte (0-9)                                          //
-//   Device sends "RESULT <cycles> <pred>\n"                                         //
-// ================================================================================ //
-
 #include <neorv32.h>
 #include <neorv32_spi.h>
 #include <stdint.h>

@@ -1,10 +1,3 @@
-// ================================================================================ //
-// TM Inference Benchmark - CFU, per-class DMEM preload                             //
-// Loads model from flash into DDR2 at startup.                                     //
-// During inference, preloads one class at a time from DDR2 into DMEM,              //
-// then runs CFU clause evaluation against the fast DMEM buffer.                    //
-// ================================================================================ //
-
 #include <neorv32.h>
 #include <neorv32_spi.h>
 #include <stdint.h>

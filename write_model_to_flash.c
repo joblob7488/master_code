@@ -1,23 +1,3 @@
-// ================================================================================ //
-// TM Model Flash Writer for NEORV32 / Nexys A7                                     //
-// Writes a TM model binary received over UART into the onboard QSPI flash.         //
-//                                                                                  //
-// Flash: Infineon S25FL127S (16MB, 24-bit addressing, SPI mode 0)                  //
-// SPI CS: spi_csn_o[0]                                                             //
-//                                                                                  //
-// Protocol (UART, 921600 baud):                                                    //
-//   1. Host sends 4-byte little-endian model size                                  //
-//   2. Device erases required sectors, sends ACK when ready                        //
-//   3. Host sends model in chunks of CHUNK_SIZE bytes                              //
-//   4. Device programs chunk to flash, sends ACK when done                         //
-//      (host does not send next chunk until ACK received)                          //
-//   5. After all chunks, device sends final ACK                                    //
-//   NAK (0x6E) at any point means fatal error, host should abort                  //
-//                                                                                  //
-// Using chunks larger than a page (256B) amortizes the per-page SPI overhead      //
-// while keeping DMEM usage low (only one chunk buffer needed).                     //
-// ================================================================================ //
-
 #include <neorv32.h>
 #include <neorv32_spi.h>
 #include <stdint.h>
@@ -134,9 +114,6 @@ int main(void) {
     neorv32_uart0_printf("Chunk : %u bytes (%u pages)\n", CHUNK_SIZE, CHUNK_SIZE / FLASH_PAGE_SIZE);
     neorv32_uart0_printf("Waiting for model size...\n");
 
-    // -----------------------------------------------------------------------
-    // Step 1: receive model size (4 bytes, little-endian)
-    // -----------------------------------------------------------------------
     uint8_t size_buf[4];
     uart_recv_bytes(size_buf, 4);
     uint32_t model_size = (uint32_t)size_buf[0]
@@ -144,8 +121,7 @@ int main(void) {
                         | ((uint32_t)size_buf[2] << 16)
                         | ((uint32_t)size_buf[3] << 24);
 
-    // neorv32_uart0_printf("Model size : %u bytes (%u KB)\n",
-    //                  model_size, model_size / 1024);
+
 
     if (model_size == 0 || model_size > 0xF00000UL) { // max 15MB (leave room for bootloader)
         // neorv32_uart0_printf("ERROR: Invalid model size.\n");
@@ -153,9 +129,6 @@ int main(void) {
         return 1;
     }
 
-    // -----------------------------------------------------------------------
-    // Step 2: erase all required sectors
-    // -----------------------------------------------------------------------
     uint32_t num_sectors = (model_size + FLASH_SECTOR_SIZE - 1) / FLASH_SECTOR_SIZE;
     // neorv32_uart0_printf("Erasing %u sector(s)...\n", num_sectors);
 
@@ -163,16 +136,9 @@ int main(void) {
         flash_erase_sector(MODEL_FLASH_OFFSET + s * FLASH_SECTOR_SIZE);
     }
 
-    // neorv32_uart0_printf("Erase done.\n");
 
-    // Send ACK to tell host we are ready to receive data
     neorv32_uart0_putc(ACK);
 
-    // -----------------------------------------------------------------------
-    // Step 3: receive and program chunk by chunk
-    // Each chunk is CHUNK_SIZE bytes (except possibly the last one).
-    // We ACK after each chunk is programmed.
-    // -----------------------------------------------------------------------
     static uint8_t chunk_buf[CHUNK_SIZE]; // static to avoid stack overflow
 
     uint32_t bytes_remaining = model_size;
@@ -215,9 +181,6 @@ int main(void) {
         }
     }
 
-    // neorv32_uart0_printf("\nDone! %u chunks written.\n", chunk_num);
-    // neorv32_uart0_printf("Model at flash offset 0x%x, size %u bytes.\n",
-                        //  MODEL_FLASH_OFFSET, model_size);
 
     while (1) {}
     return 0;

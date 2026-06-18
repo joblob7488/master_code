@@ -1,18 +1,3 @@
-#!/usr/bin/env python3
-"""
-tm_benchmark.py
-Runs a fixed benchmark test against the NEORV32 TM inference program.
-
-Uses examples 0-19 for each digit (0-9), always in the same order.
-Logs results to a CSV file with prediction, correctness, and cycle count.
-Prints a summary at the end.
-
-Usage:
-    python tm_benchmark.py --port COM3 --mode noncfu
-    python tm_benchmark.py --port COM3 --mode cfu
-    python tm_benchmark.py --port COM3 --mode cfu --data mnist_sorted
-"""
-
 import argparse
 import csv
 import os
