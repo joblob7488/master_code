@@ -61,15 +61,6 @@
         (uint32_t)(pos_mask),      \
         (uint32_t)(neg_mask)       \
     )
-// CHUNK_EVAL_FAST: same as CHUNK_EVAL but returns clause_failed in bit 0
-// Use to break out of chunk loop early when clause has already failed
-#define CFU_CHUNK_EVAL_FAST(x_bits, pos_mask, neg_mask) \
-    neorv32_cfu_r4_instr(              \
-        TM_FUNCT3_CHUNK_EVAL_FAST,     \
-        (uint32_t)(x_bits),            \
-        (uint32_t)(pos_mask),          \
-        (uint32_t)(neg_mask)           \
-    )
 
 // CLAUSE_COMMIT: finalize clause vote, pass clause index for polarity
 // result is ignored

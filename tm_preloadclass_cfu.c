@@ -42,48 +42,14 @@
 #define TOTAL_MODEL_BYTES (TOTAL_MODEL_WORDS * 4)
 
 // CFU
-#define TM_FUNCT3_CHUNK_EVAL    0b000
-#define TM_FUNCT3_CHUNK_EVAL_FAST 0b011
-#define TM_FUNCT3_CLAUSE_COMMIT 0b001
-#define TM_FUNCT3_GET_SCORE     0b010
+#define TM_FUNCT3_CLAUSE  0b000
 
-
-// CHUNK_EVAL: update internal clause state for one 32-bit chunk
-// result is ignored
-#define CFU_CHUNK_EVAL(x_bits, pos_mask, neg_mask) \
+#define TM_CFU_CLAUSE_EVAL(x_bits, pos_mask, neg_mask) \
     neorv32_cfu_r4_instr(          \
-        TM_FUNCT3_CHUNK_EVAL,      \
+        TM_FUNCT3_CLAUSE,          \
         (uint32_t)(x_bits),        \
         (uint32_t)(pos_mask),      \
         (uint32_t)(neg_mask)       \
-    )
-// CHUNK_EVAL_FAST: same as CHUNK_EVAL but returns clause_failed in bit 0
-// Use to break out of chunk loop early when clause has already failed
-#define CFU_CHUNK_EVAL_FAST(x_bits, pos_mask, neg_mask) \
-    neorv32_cfu_r4_instr(              \
-        TM_FUNCT3_CHUNK_EVAL_FAST,     \
-        (uint32_t)(x_bits),            \
-        (uint32_t)(pos_mask),          \
-        (uint32_t)(neg_mask)           \
-    )
-
-// CLAUSE_COMMIT: finalize clause vote, pass clause index for polarity
-// result is ignored
-#define CFU_CLAUSE_COMMIT(clause_idx) \
-    neorv32_cfu_r4_instr(            \
-        TM_FUNCT3_CLAUSE_COMMIT,     \
-        (uint32_t)(clause_idx),      \
-        (uint32_t)0,                           \
-        (uint32_t)0                            \
-    )
- 
-// GET_SCORE: return clamped class_sum and reset for next class
-#define CFU_GET_SCORE() \
-    (int32_t)neorv32_cfu_r4_instr( \
-        TM_FUNCT3_GET_SCORE,        \
-        (uint32_t)0,                          \
-        (uint32_t)0,                          \
-        (uint32_t)0                           \
     )
 
 // ---------------------------------------------------------------------------
@@ -189,24 +155,38 @@ static void preload_class(int cls) {
 static int tm_score(int cls, uint32_t Xi[],
                     uint32_t *preload_cyc, uint32_t *score_cyc) {
 
+    int class_sum = 0;
+
     uint32_t t0 = neorv32_cpu_get_cycle();
     preload_class(cls);
     uint32_t t1 = neorv32_cpu_get_cycle();
     *preload_cyc += t1 - t0;
 
     for (int j = 0; j < CLAUSES; j++) {
+        uint32_t clause_out  = 1;
+        uint32_t all_exclude = 1;
+
         const uint32_t *clause = &class_buf[j * WORDS_PER_CLAUSE];
 
         for (int k = 0; k < POS_CHUNKS; k++) {
 	    if ((clause[k] | clause[POS_CHUNKS + k]) == 0) continue;
-        uint32_t chunk_ok = CFU_CHUNK_EVAL_FAST(Xi[k], clause[k], clause[POS_CHUNKS + k]);
-        if (chunk_ok & 1) break;  // clause already failed, skip remaining chunks
-        }
+        all_exclude = 0;
+        uint32_t chunk_ok = TM_CFU_CLAUSE_EVAL(Xi[k], clause[k], clause[POS_CHUNKS + k]);
+        if (!chunk_ok) {
+                clause_out = 0;
+                break;
+            }
 
-        CFU_CLAUSE_COMMIT(j);
+        clause_out = clause_out && !all_exclude;
+
+        if (clause_out) {
+            if ((j & 1) == 0) class_sum++;
+            else               class_sum--;
+        }
     }
 
-    int class_sum = (int)CFU_GET_SCORE();
+    if (class_sum >  THRESHOLD) class_sum =  THRESHOLD;
+    if (class_sum < -THRESHOLD) class_sum = -THRESHOLD;
 
     uint32_t t2 = neorv32_cpu_get_cycle();
     *score_cyc += t2 - t1;

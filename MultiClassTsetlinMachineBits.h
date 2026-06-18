@@ -43,13 +43,8 @@ float mc_tm_evaluate(struct MultiClassTsetlinMachine *mc_tm, unsigned int X[][LA
 
 void mc_tm_fit(struct MultiClassTsetlinMachine *mc_tm, unsigned int X[][LA_CHUNKS], int y[], int number_of_examples, int epochs);
 
-// Save only the action bit plane (STATE_BITS-1) for all classes.
-// Each class contributes CLAUSES * LA_CHUNKS packed uint32 words.
-// Total file size: CLASSES * CLAUSES * LA_CHUNKS * sizeof(unsigned int) bytes.
 int mc_tm_save(const char *path, const struct MultiClassTsetlinMachine *mc);
  
-// Load action bits from file into an already-allocated MultiClassTsetlinMachine.
-// All lower state bit planes are zeroed; only the action plane is restored.
 int mc_tm_load_into(const char *path, struct MultiClassTsetlinMachine *mc);
  
 // Allocate a new MultiClassTsetlinMachine and load its state from file.

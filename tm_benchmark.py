@@ -30,7 +30,6 @@ CPU_FREQ_HZ      = 100_000_000      # 100 MHz, used to convert cycles to ms
 
 
 def pack_image(bits: list) -> bytes:
-    """Pack 784 binarized pixel values into 100 bytes (25 x uint32_t, positive literals only)."""
     assert len(bits) == FEATURES
     words = []
     for i in range(POS_CHUNKS):
@@ -44,7 +43,6 @@ def pack_image(bits: list) -> bytes:
 
 
 def load_example(data_dir: str, digit: int, index: int):
-    """Load example number `index` (0-based) for the given digit. Fixed, no randomness."""
     folder = os.path.join(data_dir, str(digit))
     if not os.path.isdir(folder):
         raise FileNotFoundError(f"Folder '{folder}' not found. Run sort_mnist.py first.")
@@ -64,7 +62,6 @@ def load_example(data_dir: str, digit: int, index: int):
 
 
 def wait_ready(ser: serial.Serial):
-    """Drain UART output until device prints 'Ready.'"""
     print("Waiting for device ready...")
     buf = b""
     while b"Ready." not in buf:
@@ -76,12 +73,6 @@ def wait_ready(ser: serial.Serial):
 
 
 def send_image_and_get_result(ser: serial.Serial, packed: bytes):
-    """
-    Send one packed image, read back:
-      - raw prediction byte (pred+1)
-      - RESULT line: "RESULT <cycles> <pred>"
-    Returns (pred, cycles).
-    """
     ser.write(packed)
 
     # Read raw prediction byte (sent as pred+1)
@@ -169,7 +160,7 @@ def run_benchmark(port: str, baud: int, data_dir: str, mode: str, log_path: str,
                 "ms":       f"{ms:.3f}",
             })
 
-            marker = "✓" if correct else "✗"
+            marker = "correct" if correct else "incorrect"
             print(f"  [{i+1:3d}/{total_images}] digit={digit} pred={pred} {marker}  cycles={cycles}  ({ms:.3f} ms)")
 
         elapsed = time.time() - start_time

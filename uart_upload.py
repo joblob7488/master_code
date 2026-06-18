@@ -11,9 +11,6 @@ Usage:
 Examples:
     python neorv32_uart_upload.py COM3 path/to/neorv32_exe.bin
     python neorv32_uart_upload.py /dev/ttyUSB0 path/to/neorv32_exe.bin
-
-Requirements:
-    pip install pyserial
 """
 
 import sys
